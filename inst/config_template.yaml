@@ -1,0 +1,68 @@
+# Sample Configuration File for tradedash
+
+# Dashboard Theme
+theme: "dark"  # Options: "dark", "light", "auto"
+chart_theme: "trading_dark"  # Options: "trading_dark", "trading_light", "minimal"
+
+# Data Sources
+data_sources:
+  primary: "yahoo"  # Options: "yahoo", "alpha_vantage", "iex", "local"
+  backup: "alpha_vantage"
+  cache_duration: 300  # seconds
+
+# API Keys (if required)
+api_keys:
+  alpha_vantage: "YOUR_ALPHA_VANTAGE_KEY"
+  iex_cloud: "YOUR_IEX_KEY"
+
+# Dashboard Behavior
+behavior:
+  auto_refresh: true
+  refresh_rate: 5000  # milliseconds
+  max_symbols: 10
+  default_timeframe: "1year"
+
+# Initial Capital
+trading:
+  initial_capital: 100000
+  commission: 0.001  # 0.1%
+  slippage: 0.0005  # 0.05%
+
+# Notifications
+notifications:
+  trades: true
+  alerts: true
+  errors: true
+  email_notifications: false
+  email_address: "your@email.com"
+
+# Chart Defaults
+chart_defaults:
+  height: 600
+  show_volume: true
+  show_indicators: true
+  default_indicators:
+    - "SMA_20"
+    - "SMA_50"
+    - "RSI_14"
+
+# Performance
+performance:
+  cache_size_mb: 100
+  max_data_points: 5000
+  lazy_load: true
+  parallel_processing: true
+
+# Export Settings
+export:
+  default_format: "html"
+  include_charts: true
+  chart_dpi: 300
+  report_template: "default"
+
+# Advanced
+advanced:
+  debug_mode: false
+  log_level: "info"  # Options: "debug", "info", "warning", "error"
+  save_state: true
+  state_file: "dashboard_state.rds"

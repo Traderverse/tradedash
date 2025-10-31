@@ -1,0 +1,45 @@
+Package: tradedash
+Title: Interactive Trading Dashboard for TradingVerse
+Version: 0.1.0
+Authors@R: 
+    person("TradingVerse", "Team", , "trading@verse.com", role = c("aut", "cre"))
+Description: A comprehensive, production-ready Shiny dashboard application that 
+    integrates all TradingVerse packages into a unified interface. Features live 
+    market monitoring, strategy development, backtesting, performance analytics,
+    and real-time visualization. Designed for quantitative traders and portfolio
+    managers who need professional-grade tooling.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Depends:
+    R (>= 4.1.0)
+Imports:
+    shiny (>= 1.7.0),
+    shinydashboard (>= 0.7.2),
+    shinyWidgets (>= 0.7.0),
+    shinyjs (>= 2.1.0),
+    DT (>= 0.20),
+    tradeengine,
+    tradeio,
+    tradefeatures,
+    tradeviz,
+    dplyr (>= 1.1.0),
+    tibble (>= 3.2.0),
+    tidyr (>= 1.3.0),
+    lubridate (>= 1.9.0),
+    ggplot2 (>= 3.4.0),
+    plotly (>= 4.10.0),
+    patchwork (>= 1.1.0),
+    jsonlite (>= 1.8.0),
+    yaml (>= 2.3.0),
+    config (>= 0.3.0)
+Suggests:
+    trademetrics,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    devtools
+VignetteBuilder: knitr
+URL: https://github.com/tradingverse/tradedash
+BugReports: https://github.com/tradingverse/tradedash/issues
