@@ -11,10 +11,11 @@ Description: A comprehensive, production-ready Shiny dashboard application that
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Depends:
     R (>= 4.1.0)
 Imports:
+    magrittr,
     shiny (>= 1.7.0),
     shinydashboard (>= 0.7.2),
     shinyWidgets (>= 0.7.0),
@@ -40,6 +41,5 @@ Suggests:
     knitr,
     rmarkdown,
     devtools
-VignetteBuilder: knitr
 URL: https://github.com/tradingverse/tradedash
 BugReports: https://github.com/tradingverse/tradedash/issues
