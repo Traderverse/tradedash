@@ -2,7 +2,7 @@ pandoc: 3.1.11
 pkgdown: 2.1.3
 pkgdown_sha: ~
 articles: {}
-last_built: 2025-11-01T19:02Z
+last_built: 2025-11-01T19:07Z
 urls:
   reference: https://traderverse.github.io/tradedash/reference
   article: https://traderverse.github.io/tradedash/articles
