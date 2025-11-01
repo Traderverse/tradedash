@@ -1,3 +1,7 @@
+# Suppress NSE warnings for dplyr
+utils::globalVariables(c("symbol", "datetime", "avg_return", "prev_close", 
+                         "change_pct", "Price", "Change %"))
+
 #' Launch TradingVerse Dashboard
 #'
 #' @description
@@ -15,6 +19,7 @@
 #' @export
 #' @importFrom stats rnorm
 #' @importFrom scales dollar
+#' @importFrom utils tail
 #'
 #' @examples
 #' \dontrun{
@@ -467,7 +472,7 @@ create_full_dashboard <- function(config) {
         tryCatch({
           # Check if tradeio is available
           if (!requireNamespace("tradeio", quietly = TRUE)) {
-            shiny::showNotification("⚠️ Install tradeio package: devtools::install_github('Traderverse/tradeio')", 
+            shiny::showNotification("[!] Install tradeio package: devtools::install_github('Traderverse/tradeio')", 
                                    type = "warning", duration = 10)
             rv$use_real_data <- FALSE
             return(NULL)
@@ -487,7 +492,7 @@ create_full_dashboard <- function(config) {
                 from = Sys.Date() - 365,
                 to = Sys.Date()
               )
-              shiny::showNotification("✅ Data loaded from Yahoo Finance (FREE)", 
+              shiny::showNotification("[OK] Data loaded from Yahoo Finance (FREE)", 
                                      type = "message", duration = 3)
               
             } else if (source == "alpha_vantage") {
@@ -499,7 +504,7 @@ create_full_dashboard <- function(config) {
               
               if (api_key == "") {
                 shiny::showNotification(
-                  "⚠️ Alpha Vantage requires API key. Get free key at: https://www.alphavantage.co/support/#api-key",
+                  "[!] Alpha Vantage requires API key. Get free key at: https://www.alphavantage.co/support/#api-key",
                   type = "warning", duration = 10
                 )
                 return(NULL)
@@ -522,14 +527,14 @@ create_full_dashboard <- function(config) {
               }
               
               if (length(data_list) == 0) {
-                shiny::showNotification("❌ Failed to fetch data from Alpha Vantage", 
+                shiny::showNotification("[X] Failed to fetch data from Alpha Vantage", 
                                        type = "error", duration = 5)
                 return(NULL)
               }
               
               data <- dplyr::bind_rows(data_list)
               shiny::showNotification(
-                paste0("✅ Data loaded from Alpha Vantage (", length(data_list), " symbols)"),
+                paste0("[OK] Data loaded from Alpha Vantage (", length(data_list), " symbols)"),
                 type = "message", duration = 3
               )
             }
@@ -538,7 +543,7 @@ create_full_dashboard <- function(config) {
           })
           
         }, error = function(e) {
-          shiny::showNotification(paste("⚠️ Failed to fetch data:", e$message), 
+          shiny::showNotification(paste("[!] Failed to fetch data:", e$message), 
                                  type = "warning", duration = 5)
           rv$use_real_data <- FALSE
           return(NULL)
@@ -565,7 +570,7 @@ create_full_dashboard <- function(config) {
     output$data_source_indicator <- shiny::renderUI({
       source <- if (!is.null(input$data_source_setting)) input$data_source_setting else "yahoo"
       source_name <- if (source == "yahoo") "Yahoo Finance" else "Alpha Vantage"
-      status <- if (!is.null(rv$market_data)) "🟢 Live" else "🔴 Sample"
+      status <- if (!is.null(rv$market_data)) "[LIVE] Live" else "[SAMPLE] Sample"
       
       shiny::div(
         style = "background: #1a2142; padding: 10px; border-radius: 5px; border: 1px solid #1e2a5e;",
@@ -665,7 +670,7 @@ create_full_dashboard <- function(config) {
                        fill = "tozeroy",
                        line = list(color = "#26a69a", width = 2)) %>%
           plotly::layout(
-            title = "⚠️ Using Sample Data - Install tradeio for real data",
+            title = "[!] Using Sample Data - Install tradeio for real data",
             xaxis = list(title = ""),
             yaxis = list(title = "Equity ($)"),
             hovermode = "x unified"
@@ -760,9 +765,9 @@ create_full_dashboard <- function(config) {
     shiny::observeEvent(input$save_api_key, {
       if (!is.null(input$api_key) && input$api_key != "") {
         Sys.setenv(ALPHA_VANTAGE_KEY = input$api_key)
-        shiny::showNotification("✅ API key saved for this session", type = "message", duration = 3)
+        shiny::showNotification("[OK] API key saved for this session", type = "message", duration = 3)
       } else {
-        shiny::showNotification("⚠️ Please enter an API key", type = "warning", duration = 3)
+        shiny::showNotification("[!] Please enter an API key", type = "warning", duration = 3)
       }
     })
     
@@ -772,7 +777,7 @@ create_full_dashboard <- function(config) {
       
       output$connection_status <- shiny::renderText({
         if (!requireNamespace("tradeio", quietly = TRUE)) {
-          return("❌ tradeio package not installed\nRun: devtools::install_github('Traderverse/tradeio')")
+          return("[X] tradeio package not installed\nRun: devtools::install_github('Traderverse/tradeio')")
         }
         
         tryCatch({
@@ -780,7 +785,7 @@ create_full_dashboard <- function(config) {
             # Test Yahoo Finance
             test_data <- tradeio::fetch_yahoo("AAPL", from = Sys.Date() - 7, to = Sys.Date())
             paste0(
-              "✅ Yahoo Finance connection successful!\n",
+              "[OK] Yahoo Finance connection successful!\n",
               "Fetched ", nrow(test_data), " rows for AAPL\n",
               "Latest price: $", round(tail(test_data$close, 1), 2)
             )
@@ -792,19 +797,19 @@ create_full_dashboard <- function(config) {
             }
             
             if (api_key == "") {
-              return("❌ Alpha Vantage API key required\nGet free key at: https://www.alphavantage.co/support/#api-key")
+              return("[X] Alpha Vantage API key required\nGet free key at: https://www.alphavantage.co/support/#api-key")
             }
             
             test_data <- tradeio::fetch_alpha_vantage("AAPL", api_key = api_key, outputsize = "compact")
             paste0(
-              "✅ Alpha Vantage connection successful!\n",
+              "[OK] Alpha Vantage connection successful!\n",
               "API key valid\n",
               "Fetched ", nrow(test_data), " rows for AAPL\n",
               "Latest price: $", round(tail(test_data$close, 1), 2)
             )
           }
         }, error = function(e) {
-          paste0("❌ Connection failed:\n", e$message)
+          paste0("[X] Connection failed:\n", e$message)
         })
       })
     })
