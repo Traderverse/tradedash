@@ -67,9 +67,6 @@ NULL
 #' @section Main Functions:
 #' \describe{
 #'   \item{\code{\link{launch_dashboard}}}{Launch the main trading dashboard}
-#'   \item{\code{\link{launch_live_monitor}}}{Launch live market monitor}
-#'   \item{\code{\link{launch_backtest_studio}}}{Launch backtest studio}
-#'   \item{\code{\link{launch_portfolio_analytics}}}{Launch portfolio dashboard}
 #' }
 #'
 #' @examples
