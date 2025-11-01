@@ -17,10 +17,11 @@ data <- fetch_yahoo("AAPL", from = "2023-01-01")
 # =============================================================================
 # STEP 2: Add Indicators
 # =============================================================================
+# IMPORTANT: Column names created are sma_20, sma_50, and "rsi" (not rsi_14!)
 data <- data %>%
-  add_sma(20) %>%
-  add_sma(50) %>%
-  add_rsi(14)
+  add_sma(20) %>%      # Creates column: sma_20
+  add_sma(50) %>%      # Creates column: sma_50
+  add_rsi(14)          # Creates column: rsi (NOT rsi_14!)
 
 # =============================================================================
 # FIX: Preserve market_tbl class (important!)
@@ -34,11 +35,12 @@ if (!"market_tbl" %in% class(data)) {
 # =============================================================================
 # STEP 3: Add Strategy
 # =============================================================================
+# IMPORTANT: Use "rsi" NOT "rsi_14" in your rules!
 data_with_strategy <- data %>%
   add_strategy(
     name = "SMA_RSI_Strategy",
-    entry_rules = sma_20 > sma_50 & rsi_14 < 70,
-    exit_rules = sma_20 < sma_50 | rsi_14 > 80,
+    entry_rules = sma_20 > sma_50 & rsi < 70,      # Use "rsi" not "rsi_14"!
+    exit_rules = sma_20 < sma_50 | rsi > 80,       # Use "rsi" not "rsi_14"!
     position_size = 100,
     commission = 0.001,
     slippage = 0.0005
@@ -62,6 +64,30 @@ print(results)
 # =============================================================================
 plot_equity_curve(results)
 plot_drawdown(results)
+
+# =============================================================================
+# OPTION: Custom Column Names
+# =============================================================================
+# You can specify custom names for columns if you prefer rsi_14 over rsi
+data_custom <- fetch_yahoo("AAPL", from = "2023-01-01")
+
+data_custom <- data_custom %>%
+  add_sma(20, name = "sma_20") %>%     # Custom name (same as default)
+  add_sma(50, name = "sma_50") %>%     # Custom name (same as default)
+  add_rsi(14, name = "rsi_14")         # Custom name: rsi_14 instead of rsi
+
+# Fix class
+class(data_custom) <- c("market_tbl", class(data_custom))
+
+# Now you CAN use rsi_14 because we named it that way!
+data_custom <- add_strategy(
+  data_custom,
+  name = "Custom_Names",
+  entry_rules = sma_20 > sma_50 & rsi_14 < 70,
+  exit_rules = sma_20 < sma_50 | rsi_14 > 80
+)
+
+results_custom <- backtest(data_custom, initial_capital = 100000)
 
 # =============================================================================
 # ALTERNATIVE: Simpler Approach (No Piping - Most Reliable!)
