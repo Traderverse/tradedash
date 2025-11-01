@@ -35,23 +35,8 @@ navbar:
       href: https://github.com/Traderverse/tradedash
 
 reference:
-- title: "Dashboard Functions"
-  desc: "Launch dashboard applications"
-  contents:
-  - launch_dashboard
-  - launch_live_monitor
-  - launch_backtest_studio
-  - launch_portfolio_analytics
-  
-- title: "UI Components"
-  desc: "Reusable UI modules"
-  contents:
-  - starts_with("ui_")
-  
-- title: "Server Components"
-  desc: "Server logic modules"
-  contents:
-  - starts_with("server_")
+- title: "All Functions"
+  desc: "Interactive dashboard functions"
 
 footer:
   structure:
