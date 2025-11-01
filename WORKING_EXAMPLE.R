@@ -62,8 +62,11 @@ print(results)
 # =============================================================================
 # STEP 6: Visualize
 # =============================================================================
-plot_equity_curve(results)
-plot_drawdown(results)
+# NOTE: If you get an error about missing equity column, reload tradeviz:
+# devtools::load_all("../tradeviz")
+
+plot_equity_curve(results)  # Now works with backtest_results objects!
+plot_drawdown(results)      # Also updated to handle backtest_results
 
 # =============================================================================
 # OPTION: Custom Column Names
