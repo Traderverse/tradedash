@@ -427,12 +427,47 @@ create_full_dashboard <- function(config) {
     rv <- shiny::reactiveValues(
       portfolio_data = NULL,
       backtest_results = NULL,
-      live_data = NULL
+      live_data = NULL,
+      use_real_data = TRUE,  # Toggle for real vs sample data
+      market_data = NULL
     )
     
-    # Initialize with sample data
+    # Initialize with portfolio data
     shiny::observe({
       rv$portfolio_data <- generate_sample_portfolio()
+    })
+    
+    # Fetch real market data on startup
+    shiny::observe({
+      if (rv$use_real_data) {
+        tryCatch({
+          message("Fetching real market data from Yahoo Finance...")
+          
+          # Check if tradeio is available
+          if (requireNamespace("tradeio", quietly = TRUE)) {
+            # Fetch data for watchlist symbols
+            symbols <- c("AAPL", "MSFT", "GOOGL", "AMZN", "TSLA")
+            
+            shiny::withProgress(message = "Fetching market data...", {
+              rv$market_data <- tradeio::fetch_yahoo(
+                symbols, 
+                from = Sys.Date() - 365,
+                to = Sys.Date()
+              )
+              shiny::showNotification("✅ Real market data loaded from Yahoo Finance", 
+                                     type = "message", duration = 3)
+            })
+          } else {
+            shiny::showNotification("⚠️ Install tradeio package for real data: devtools::install_github('Traderverse/tradeio')", 
+                                   type = "warning", duration = 10)
+            rv$use_real_data <- FALSE
+          }
+        }, error = function(e) {
+          shiny::showNotification(paste("⚠️ Failed to fetch real data:", e$message), 
+                                 type = "warning", duration = 5)
+          rv$use_real_data <- FALSE
+        })
+      }
     })
     
     # Value boxes
@@ -476,18 +511,57 @@ create_full_dashboard <- function(config) {
     
     # Main equity curve
     output$main_equity <- plotly::renderPlotly({
-      dates <- seq(Sys.Date() - 365, Sys.Date(), by = "day")
-      equity <- 100000 * cumprod(1 + rnorm(length(dates), 0.001, 0.02))
       
-      plotly::plot_ly(x = dates, y = equity, type = "scatter", mode = "lines",
-                     fill = "tozeroy",
-                     line = list(color = "#26a69a", width = 2)) %>%
-        plotly::layout(
-          title = "",
-          xaxis = list(title = ""),
-          yaxis = list(title = "Equity ($)"),
-          hovermode = "x unified"
-        )
+      if (!is.null(rv$market_data) && rv$use_real_data) {
+        # Use real market data to simulate portfolio equity
+        # Take SPY-like weighted average of tech stocks
+        portfolio_data <- rv$market_data %>%
+          dplyr::filter(symbol %in% c("AAPL", "MSFT", "GOOGL")) %>%
+          dplyr::group_by(datetime) %>%
+          dplyr::summarise(
+            avg_return = mean(close / dplyr::lag(close) - 1, na.rm = TRUE),
+            .groups = "drop"
+          ) %>%
+          dplyr::filter(!is.na(avg_return)) %>%
+          dplyr::mutate(equity = 100000 * cumprod(1 + avg_return))
+        
+        plotly::plot_ly(
+          data = portfolio_data,
+          x = ~datetime, 
+          y = ~equity, 
+          type = "scatter", 
+          mode = "lines",
+          fill = "tozeroy",
+          line = list(color = "#26a69a", width = 2),
+          text = ~paste0(
+            "Date: ", format(datetime, "%Y-%m-%d"), "<br>",
+            "Equity: $", scales::comma(equity, accuracy = 2)
+          ),
+          hoverinfo = "text"
+        ) %>%
+          plotly::layout(
+            title = "",
+            xaxis = list(title = ""),
+            yaxis = list(title = "Equity ($)"),
+            hovermode = "x unified",
+            paper_bgcolor = "transparent",
+            plot_bgcolor = "transparent"
+          )
+      } else {
+        # Fallback to sample data
+        dates <- seq(Sys.Date() - 365, Sys.Date(), by = "day")
+        equity <- 100000 * cumprod(1 + rnorm(length(dates), 0.001, 0.02))
+        
+        plotly::plot_ly(x = dates, y = equity, type = "scatter", mode = "lines",
+                       fill = "tozeroy",
+                       line = list(color = "#26a69a", width = 2)) %>%
+          plotly::layout(
+            title = "⚠️ Using Sample Data - Install tradeio for real data",
+            xaxis = list(title = ""),
+            yaxis = list(title = "Equity ($)"),
+            hovermode = "x unified"
+          )
+      }
     })
     
     # Allocation pie
@@ -507,13 +581,39 @@ create_full_dashboard <- function(config) {
     
     # Market overview table
     output$market_overview <- DT::renderDataTable({
-      data.frame(
-        Index = c("S&P 500", "NASDAQ", "DOW", "Russell 2000"),
-        Value = c(4500, 14000, 35000, 1800),
-        Change = c("+0.5%", "+1.2%", "+0.3%", "-0.2%"),
-        Status = c("Up", "Up", "Up", "Down")
-      ) %>%
-        DT::datatable(options = list(pageLength = 10, dom = "t"))
+      
+      if (!is.null(rv$market_data) && rv$use_real_data) {
+        # Use real data - show latest prices for major stocks
+        latest_data <- rv$market_data %>%
+          dplyr::group_by(symbol) %>%
+          dplyr::arrange(dplyr::desc(datetime)) %>%
+          dplyr::slice(1) %>%
+          dplyr::mutate(
+            prev_close = dplyr::lag(close, default = close),
+            change_pct = ((close - prev_close) / prev_close * 100)
+          ) %>%
+          dplyr::select(Symbol = symbol, Price = close, `Change %` = change_pct) %>%
+          dplyr::mutate(
+            Price = scales::dollar(Price, accuracy = 0.01),
+            `Change %` = sprintf("%+.2f%%", `Change %`),
+            Status = ifelse(`Change %` >= 0, "Up", "Down")
+          )
+        
+        DT::datatable(
+          latest_data,
+          options = list(pageLength = 10, dom = "t"),
+          rownames = FALSE
+        )
+      } else {
+        # Fallback to sample data
+        data.frame(
+          Index = c("S&P 500", "NASDAQ", "DOW", "Russell 2000"),
+          Value = c(4500, 14000, 35000, 1800),
+          Change = c("+0.5%", "+1.2%", "+0.3%", "-0.2%"),
+          Status = c("Up", "Up", "Up", "Down")
+        ) %>%
+          DT::datatable(options = list(pageLength = 10, dom = "t"))
+      }
     })
     
     # Top positions table
