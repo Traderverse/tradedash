@@ -13,6 +13,8 @@
 #'
 #' @return Shiny app object
 #' @export
+#' @importFrom stats rnorm
+#' @importFrom scales dollar
 #'
 #' @examples
 #' \dontrun{
@@ -40,10 +42,10 @@ launch_dashboard <- function(mode = "full",
   # Create app based on mode
   app <- switch(mode,
     "full" = create_full_dashboard(config),
-    "live" = create_live_dashboard(config),
-    "backtest" = create_backtest_studio(config),
-    "portfolio" = create_portfolio_dashboard(config),
-    stop("Invalid mode. Choose: 'full', 'live', 'backtest', or 'portfolio'")
+    # "live" = create_live_dashboard(config),  # TODO: Implement in future version
+    # "backtest" = create_backtest_studio(config),  # TODO: Implement in future version
+    # "portfolio" = create_portfolio_dashboard(config),  # TODO: Implement in future version
+    stop("Invalid mode. Currently only 'full' mode is supported. Other modes coming in v0.2.")
   )
   
   # Run app

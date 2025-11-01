@@ -87,9 +87,8 @@ NULL
 #' launch_dashboard(mode = "backtest", port = 3840)  # Monitor 3
 #' }
 #'
-#' @docType package
-#' @name tradedash-package
-NULL
+#' @keywords internal
+"_PACKAGE"
 
 # Suppress R CMD check notes for NSE and Shiny reactive expressions
 utils::globalVariables(c(

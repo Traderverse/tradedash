@@ -2,3 +2,5 @@
 
 export(launch_dashboard)
 importFrom(magrittr,"%>%")
+importFrom(scales,dollar)
+importFrom(stats,rnorm)
