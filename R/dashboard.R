@@ -194,7 +194,19 @@ create_full_dashboard <- function(config) {
         # Dashboard Tab
         shinydashboard::tabItem(
           tabName = "dashboard",
-          shiny::h2("Trading Dashboard"),
+          shiny::fluidRow(
+            shiny::column(
+              width = 9,
+              shiny::h2("Trading Dashboard")
+            ),
+            shiny::column(
+              width = 3,
+              shiny::div(
+                style = "text-align: right; padding-top: 20px;",
+                shiny::uiOutput("data_source_indicator")
+              )
+            )
+          ),
           
           # Key Metrics Row
           shiny::fluidRow(
@@ -386,11 +398,17 @@ create_full_dashboard <- function(config) {
               status = "info",
               solidHeader = TRUE,
               width = 6,
-              shiny::selectInput("data_source", "Primary Data Source:",
-                                choices = c("Yahoo Finance", "Alpha Vantage", "IEX Cloud", "Local")),
-              shiny::passwordInput("api_key", "API Key:"),
-              shiny::actionButton("test_connection", "Test Connection")
-            )
+              shiny::selectInput("data_source_setting", "Primary Data Source:",
+                                choices = c("Yahoo Finance (FREE)" = "yahoo", 
+                                          "Alpha Vantage (FREE - API Key Required)" = "alpha_vantage"),
+                                selected = "yahoo"),
+              shiny::passwordInput("api_key", "API Key (for Alpha Vantage):"),
+              shiny::helpText("Get free Alpha Vantage key at: https://www.alphavantage.co/support/#api-key"),
+              shiny::actionButton("save_api_key", "Save API Key", class = "btn-primary"),
+              shiny::actionButton("test_connection", "Test Connection", class = "btn-info"),
+              shiny::hr(),
+              shiny::verbatimTextOutput("connection_status")
+            ),
           ),
           
           shiny::fluidRow(
@@ -437,37 +455,128 @@ create_full_dashboard <- function(config) {
       rv$portfolio_data <- generate_sample_portfolio()
     })
     
-    # Fetch real market data on startup
-    shiny::observe({
+    # Reactive value for data source
+    data_source <- shiny::reactiveVal("yahoo")
+    
+    # Fetch real market data on startup or when source changes
+    fetch_market_data <- shiny::reactive({
+      # Trigger on source change
+      input$data_source_setting
+      
       if (rv$use_real_data) {
         tryCatch({
-          message("Fetching real market data from Yahoo Finance...")
-          
           # Check if tradeio is available
-          if (requireNamespace("tradeio", quietly = TRUE)) {
-            # Fetch data for watchlist symbols
-            symbols <- c("AAPL", "MSFT", "GOOGL", "AMZN", "TSLA")
-            
-            shiny::withProgress(message = "Fetching market data...", {
-              rv$market_data <- tradeio::fetch_yahoo(
+          if (!requireNamespace("tradeio", quietly = TRUE)) {
+            shiny::showNotification("⚠️ Install tradeio package: devtools::install_github('Traderverse/tradeio')", 
+                                   type = "warning", duration = 10)
+            rv$use_real_data <- FALSE
+            return(NULL)
+          }
+          
+          # Get settings
+          source <- if (!is.null(input$data_source_setting)) input$data_source_setting else "yahoo"
+          symbols <- c("AAPL", "MSFT", "GOOGL", "AMZN", "TSLA")
+          
+          message(paste("Fetching data from:", source))
+          
+          shiny::withProgress(message = paste("Fetching from", source, "..."), {
+            if (source == "yahoo") {
+              # Yahoo Finance - FREE, no API key
+              data <- tradeio::fetch_yahoo(
                 symbols, 
                 from = Sys.Date() - 365,
                 to = Sys.Date()
               )
-              shiny::showNotification("✅ Real market data loaded from Yahoo Finance", 
+              shiny::showNotification("✅ Data loaded from Yahoo Finance (FREE)", 
                                      type = "message", duration = 3)
-            })
-          } else {
-            shiny::showNotification("⚠️ Install tradeio package for real data: devtools::install_github('Traderverse/tradeio')", 
-                                   type = "warning", duration = 10)
-            rv$use_real_data <- FALSE
-          }
+              
+            } else if (source == "alpha_vantage") {
+              # Alpha Vantage - FREE but needs API key
+              api_key <- Sys.getenv("ALPHA_VANTAGE_KEY")
+              if (api_key == "" && !is.null(input$api_key) && input$api_key != "") {
+                api_key <- input$api_key
+              }
+              
+              if (api_key == "") {
+                shiny::showNotification(
+                  "⚠️ Alpha Vantage requires API key. Get free key at: https://www.alphavantage.co/support/#api-key",
+                  type = "warning", duration = 10
+                )
+                return(NULL)
+              }
+              
+              # Fetch from Alpha Vantage (one symbol at a time due to rate limits)
+              data_list <- list()
+              for (sym in symbols) {
+                shiny::incProgress(1/length(symbols), detail = sym)
+                tryCatch({
+                  data_list[[sym]] <- tradeio::fetch_alpha_vantage(
+                    sym,
+                    api_key = api_key,
+                    outputsize = "full"
+                  )
+                  Sys.sleep(12)  # Rate limit: 5 calls/minute
+                }, error = function(e) {
+                  message(paste("Failed to fetch", sym, ":", e$message))
+                })
+              }
+              
+              if (length(data_list) == 0) {
+                shiny::showNotification("❌ Failed to fetch data from Alpha Vantage", 
+                                       type = "error", duration = 5)
+                return(NULL)
+              }
+              
+              data <- dplyr::bind_rows(data_list)
+              shiny::showNotification(
+                paste0("✅ Data loaded from Alpha Vantage (", length(data_list), " symbols)"),
+                type = "message", duration = 3
+              )
+            }
+            
+            return(data)
+          })
+          
         }, error = function(e) {
-          shiny::showNotification(paste("⚠️ Failed to fetch real data:", e$message), 
+          shiny::showNotification(paste("⚠️ Failed to fetch data:", e$message), 
                                  type = "warning", duration = 5)
           rv$use_real_data <- FALSE
+          return(NULL)
         })
       }
+    })
+    
+    # Update market data when fetch completes
+    shiny::observe({
+      data <- fetch_market_data()
+      if (!is.null(data)) {
+        rv$market_data <- data
+      }
+    })
+    
+    # Initial data fetch
+    shiny::observe({
+      if (rv$use_real_data) {
+        rv$market_data <- fetch_market_data()
+      }
+    })
+    
+    # Data source indicator
+    output$data_source_indicator <- shiny::renderUI({
+      source <- if (!is.null(input$data_source_setting)) input$data_source_setting else "yahoo"
+      source_name <- if (source == "yahoo") "Yahoo Finance" else "Alpha Vantage"
+      status <- if (!is.null(rv$market_data)) "🟢 Live" else "🔴 Sample"
+      
+      shiny::div(
+        style = "background: #1a2142; padding: 10px; border-radius: 5px; border: 1px solid #1e2a5e;",
+        shiny::tags$small(
+          style = "color: #78909c;",
+          "Data Source: ",
+          shiny::tags$strong(style = "color: #26a69a;", source_name),
+          shiny::br(),
+          status
+        )
+      )
     })
     
     # Value boxes
@@ -645,6 +754,59 @@ create_full_dashboard <- function(config) {
         "  take_profit = ", input$take_profit / 100, "\n",
         ")"
       )
+    })
+    
+    # Save API key
+    shiny::observeEvent(input$save_api_key, {
+      if (!is.null(input$api_key) && input$api_key != "") {
+        Sys.setenv(ALPHA_VANTAGE_KEY = input$api_key)
+        shiny::showNotification("✅ API key saved for this session", type = "message", duration = 3)
+      } else {
+        shiny::showNotification("⚠️ Please enter an API key", type = "warning", duration = 3)
+      }
+    })
+    
+    # Test connection
+    shiny::observeEvent(input$test_connection, {
+      source <- if (!is.null(input$data_source_setting)) input$data_source_setting else "yahoo"
+      
+      output$connection_status <- shiny::renderText({
+        if (!requireNamespace("tradeio", quietly = TRUE)) {
+          return("❌ tradeio package not installed\nRun: devtools::install_github('Traderverse/tradeio')")
+        }
+        
+        tryCatch({
+          if (source == "yahoo") {
+            # Test Yahoo Finance
+            test_data <- tradeio::fetch_yahoo("AAPL", from = Sys.Date() - 7, to = Sys.Date())
+            paste0(
+              "✅ Yahoo Finance connection successful!\n",
+              "Fetched ", nrow(test_data), " rows for AAPL\n",
+              "Latest price: $", round(tail(test_data$close, 1), 2)
+            )
+          } else if (source == "alpha_vantage") {
+            # Test Alpha Vantage
+            api_key <- Sys.getenv("ALPHA_VANTAGE_KEY")
+            if (api_key == "" && !is.null(input$api_key) && input$api_key != "") {
+              api_key <- input$api_key
+            }
+            
+            if (api_key == "") {
+              return("❌ Alpha Vantage API key required\nGet free key at: https://www.alphavantage.co/support/#api-key")
+            }
+            
+            test_data <- tradeio::fetch_alpha_vantage("AAPL", api_key = api_key, outputsize = "compact")
+            paste0(
+              "✅ Alpha Vantage connection successful!\n",
+              "API key valid\n",
+              "Fetched ", nrow(test_data), " rows for AAPL\n",
+              "Latest price: $", round(tail(test_data$close, 1), 2)
+            )
+          }
+        }, error = function(e) {
+          paste0("❌ Connection failed:\n", e$message)
+        })
+      })
     })
     
     # Run backtest
