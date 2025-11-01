@@ -37,7 +37,7 @@ navbar:
 reference:
 - title: "Dashboard Functions"
   desc: "Launch dashboard applications"
-- contents:
+  contents:
   - launch_dashboard
   - launch_live_monitor
   - launch_backtest_studio
@@ -45,12 +45,12 @@ reference:
   
 - title: "UI Components"
   desc: "Reusable UI modules"
-- contents:
+  contents:
   - starts_with("ui_")
   
 - title: "Server Components"
   desc: "Server logic modules"
-- contents:
+  contents:
   - starts_with("server_")
 
 footer:
