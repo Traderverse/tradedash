@@ -21,10 +21,6 @@ Imports:
     shinyWidgets (>= 0.7.0),
     shinyjs (>= 2.1.0),
     DT (>= 0.20),
-    tradeengine,
-    tradeio,
-    tradefeatures,
-    tradeviz,
     dplyr (>= 1.1.0),
     tibble (>= 3.2.0),
     tidyr (>= 1.3.0),
@@ -36,6 +32,10 @@ Imports:
     yaml (>= 2.3.0),
     config (>= 0.3.0)
 Suggests:
+    tradeengine,
+    tradeio,
+    tradefeatures,
+    tradeviz,
     trademetrics,
     testthat (>= 3.0.0),
     knitr,
