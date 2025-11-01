@@ -526,3 +526,4 @@ Built with:
 <p align="center">
   <sub>Making quantitative trading accessible to everyone</sub>
 </p>
+
