@@ -35,11 +35,5 @@ Suggests:
     knitr,
     rmarkdown,
     devtools
-Remotes:
-    Traderverse/tradeengine,
-    Traderverse/tradeio,
-    Traderverse/tradefeatures,
-    Traderverse/tradeviz,
-    Traderverse/trademetrics
 URL: https://github.com/Traderverse/tradedash
 BugReports: https://github.com/Traderverse/tradedash/issues
